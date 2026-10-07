@@ -1,24 +1,26 @@
 from flask import Flask, request
 import sqlite3
-import os
+import subprocess
 
 app = Flask(__name__)
 
-# Vulnérabilité 1 : injection SQL volontaire
 @app.route("/user")
 def get_user():
     username = request.args.get("name", "")
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
-    query = "SELECT * FROM users WHERE name = '" + username + "'"
-    cursor.execute(query)
+    query = "SELECT * FROM users WHERE name = ?"
+    cursor.execute(query, (username,))
     return str(cursor.fetchall())
 
-# Vulnérabilité 2 : exécution de commande volontaire
 @app.route("/ping")
 def ping():
     host = request.args.get("host", "localhost")
-    result = os.popen("ping -c 1 " + host).read()
+    result = subprocess.run(
+        ["ping", "-c", "1", host],
+        capture_output=True,
+        text=True
+    ).stdout
     return result
 
 @app.route("/")
